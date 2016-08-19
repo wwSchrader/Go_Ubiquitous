@@ -420,9 +420,9 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
             setLocationStatus(getContext(), LOCATION_STATUS_SERVER_INVALID);
         }
 
-        if (mGoogleApiClient != null){
-            mGoogleApiClient.disconnect();
-        }
+//        if (mGoogleApiClient != null){
+//            mGoogleApiClient.disconnect();
+//        }
     }
 
 
@@ -467,18 +467,14 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
                         @Override
                         public void onResult(@NonNull DataApi.DataItemResult dataItemResult) {
                             if (!dataItemResult.getStatus().isSuccess()){
-                                Log.e(LOG_TAG, "Failed to send weather data item to wearable");
+                                Log.e(LOG_TAG, "Failed to send weather data item to com.example.android.app");
                             } else {
-                                Log.d(LOG_TAG, "Successgully sent weather data item to wearable");
+                                Log.d(LOG_TAG, "Successfully sent weather data item to com.example.android.app");
                             }
 
                         }
                     });
-
         }
-
-
-
         cursor.close();
     }
 

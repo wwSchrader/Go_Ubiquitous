@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest package="com.example.android.wearable"
+<manifest xmlns:tools="http://schemas.android.com/tools"
+          package="com.example.android.app"
           xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-feature android:name="android.hardware.type.watch"/>
@@ -28,8 +29,12 @@
                 android:resource="@drawable/preview_digital_circular"/>
 
             <intent-filter>
-                <action android:name="android.service.wallpaper.WallpaperService"/>
+                <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
+                <data android:scheme="wear" android:host="*" android:pathPrefix="/weather" />
+            </intent-filter>
 
+            <intent-filter>
+                <action android:name="android.service.wallpaper.WallpaperService"/>
                 <category android:name="com.google.android.wearable.watchface.category.WATCH_FACE"/>
             </intent-filter>
         </service>
@@ -37,6 +42,7 @@
         <meta-data
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version"/>
+
     </application>
 
 </manifest>

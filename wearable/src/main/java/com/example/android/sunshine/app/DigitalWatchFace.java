@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.example.android.wearable;
+package com.example.android.sunshine.app;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -29,11 +29,24 @@ import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
 import android.text.format.Time;
+import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
+
+import com.example.android.app.R;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.wearable.DataApi;
+import com.google.android.gms.wearable.DataEvent;
+import com.google.android.gms.wearable.DataEventBuffer;
+import com.google.android.gms.wearable.DataMap;
+import com.google.android.gms.wearable.DataMapItem;
+import com.google.android.gms.wearable.Wearable;
 
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
@@ -85,16 +98,25 @@ public class DigitalWatchFace extends CanvasWatchFaceService {
         }
     }
 
-    private class Engine extends CanvasWatchFaceService.Engine {
+    private class Engine extends CanvasWatchFaceService.Engine implements DataApi.DataListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener
+
+    {
         final Handler mUpdateTimeHandler = new EngineHandler(this);
         boolean mRegisteredTimeZoneReceiver = false;
         Paint mBackgroundPaint;
         Paint mTextPaint;
         Paint mDatePaint;
+        Paint mTempHighPaint;
+        Paint mTempLowPaint;
         boolean mAmbient;
         Time mTime;
         SimpleDateFormat mDateFormat;
         Calendar mCalendar;
+
+        String tempHigh;
+        String tempLow;
+
+
 
         final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
             @Override
@@ -107,6 +129,17 @@ public class DigitalWatchFace extends CanvasWatchFaceService {
         float mYOffset;
         float mDateXOffset;
         float mDateYOffset;
+        float mTempHighXOffset;
+        float mTempHighYOffset;
+        float mTempLowXOffset;
+        float mTempLowYOffset;
+
+        GoogleApiClient mGoogleApiClient = new GoogleApiClient.Builder(getApplicationContext())
+                .addApi(Wearable.API)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .build();
+
 
         /**
          * Whether the display supports fewer bits for each color in ambient mode. When true, we
@@ -118,6 +151,9 @@ public class DigitalWatchFace extends CanvasWatchFaceService {
         public void onCreate(SurfaceHolder holder) {
             super.onCreate(holder);
 
+
+
+
             setWatchFaceStyle(new WatchFaceStyle.Builder(DigitalWatchFace.this)
                     .setCardPeekMode(WatchFaceStyle.PEEK_MODE_VARIABLE)
                     .setBackgroundVisibility(WatchFaceStyle.BACKGROUND_VISIBILITY_INTERRUPTIVE)
@@ -126,6 +162,8 @@ public class DigitalWatchFace extends CanvasWatchFaceService {
             Resources resources = DigitalWatchFace.this.getResources();
             mYOffset = resources.getDimension(R.dimen.digital_y_offset);
             mDateYOffset = resources.getDimension(R.dimen.digital_date_y_offset);
+            mTempHighYOffset = resources.getDimension(R.dimen.digital_temp_high_y_offset);
+            mTempLowYOffset = resources.getDimension(R.dimen.digital_temp_low_y_offset);
 
             mBackgroundPaint = new Paint();
             mBackgroundPaint.setColor(resources.getColor(R.color.background));
@@ -135,6 +173,16 @@ public class DigitalWatchFace extends CanvasWatchFaceService {
 
             mDatePaint = new Paint();
             mDatePaint = createTextPaint(resources.getColor(R.color.digital_text));
+
+            mTempHighPaint = new Paint();
+            mTempHighPaint = createTextPaint(resources.getColor(R.color.digital_text));
+
+            mTempLowPaint = new Paint();
+            mTempLowPaint = createTextPaint(resources.getColor(R.color.digital_text));
+
+            //default values for temp
+            tempHigh = "--";
+            tempLow = "--";
 
             mTime = new Time();
             mDateFormat = new SimpleDateFormat("EEE, MMM dd yyyy");
@@ -161,12 +209,17 @@ public class DigitalWatchFace extends CanvasWatchFaceService {
 
             if (visible) {
                 registerReceiver();
+                mGoogleApiClient.connect();
 
                 // Update time zone in case it changed while we weren't visible.
                 mTime.clear(TimeZone.getDefault().getID());
                 mTime.setToNow();
             } else {
                 unregisterReceiver();
+
+                if (mGoogleApiClient != null && mGoogleApiClient.isConnected()) {
+                    mGoogleApiClient.disconnect();
+                }
             }
 
             // Whether the timer should be running depends on whether we're visible (as well as
@@ -206,9 +259,15 @@ public class DigitalWatchFace extends CanvasWatchFaceService {
                     ? R.dimen.digital_text_size_round : R.dimen.digital_text_size);
             float dateSize = resources.getDimension(isRound
                     ? R.dimen.digital_date_size_round : R.dimen.digital_date_size);
+            mTempHighXOffset = resources.getDimension(isRound
+                    ? R.dimen.digital_temp_high_x_offset_round : R.dimen.digital_temp_high_x_offset);
+            mTempLowXOffset = resources.getDimension(isRound
+                    ? R.dimen.digital_temp_low_x_offset_round : R.dimen.digital_temp_low_x_offset);
 
             mDatePaint.setTextSize(dateSize);
             mTextPaint.setTextSize(textSize);
+            mTempHighPaint.setTextSize(dateSize);
+            mTempLowPaint.setTextSize(dateSize);
 
         }
 
@@ -252,8 +311,8 @@ public class DigitalWatchFace extends CanvasWatchFaceService {
             // Draw H:MM in ambient mode or H:MM:SS in interactive mode.
             mTime.setToNow();
             String text;
-            // let the colon in the time "blink" every second
-            if (mTime.second % 2 == 0){
+            // let the colon in the time "blink" every second in interactive mode
+            if (mTime.second % 2 == 0 || isInAmbientMode()){
                 text = String.format("%d:%02d", mTime.hour, mTime.minute);
             } else {
                 text = String.format("%d %02d", mTime.hour, mTime.minute);
@@ -263,6 +322,9 @@ public class DigitalWatchFace extends CanvasWatchFaceService {
 
             String dateText = mDateFormat.format(mCalendar.getTime());
             canvas.drawText(dateText, mDateXOffset, mDateYOffset, mDatePaint);
+
+            canvas.drawText(tempHigh, mTempHighXOffset, mTempHighYOffset, mTempHighPaint);
+            canvas.drawText(tempLow, mTempLowXOffset, mTempLowYOffset, mTempLowPaint);
 
 
         }
@@ -300,6 +362,34 @@ public class DigitalWatchFace extends CanvasWatchFaceService {
         }
 
 
+        @Override
+        public void onDataChanged(DataEventBuffer dataEvents) {
+            Log.d("onDataChanged", "onDataChanged Triggered");
+            for (DataEvent dataEvent : dataEvents) {
+                if (dataEvent.getType() == DataEvent.TYPE_CHANGED) {
+                    DataMap dataMap = DataMapItem.fromDataItem(dataEvent.getDataItem()).getDataMap();
+                    String path = dataEvent.getDataItem().getUri().getPath();
+                    if (path.equals("/weather")) {
+                        tempHigh = dataMap.getString("temp-high");
+                        tempLow = dataMap.getString("temp-low");
+                    }
+                }
+            }
+        }
 
+        @Override
+        public void onConnected(@Nullable Bundle bundle) {
+            Wearable.DataApi.addListener(mGoogleApiClient, this);
+        }
+
+        @Override
+        public void onConnectionSuspended(int i) {
+
+        }
+
+        @Override
+        public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+
+        }
     }
 }

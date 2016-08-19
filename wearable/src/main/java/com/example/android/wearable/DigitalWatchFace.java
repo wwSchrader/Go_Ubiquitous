@@ -251,7 +251,13 @@ public class DigitalWatchFace extends CanvasWatchFaceService {
 
             // Draw H:MM in ambient mode or H:MM:SS in interactive mode.
             mTime.setToNow();
-            String text = String.format("%d:%02d", mTime.hour, mTime.minute);
+            String text;
+            // let the colon in the time "blink" every second
+            if (mTime.second % 2 == 0){
+                text = String.format("%d:%02d", mTime.hour, mTime.minute);
+            } else {
+                text = String.format("%d %02d", mTime.hour, mTime.minute);
+            }
 
             canvas.drawText(text, mXOffset, mYOffset, mTextPaint);
 
@@ -292,5 +298,8 @@ public class DigitalWatchFace extends CanvasWatchFaceService {
                 mUpdateTimeHandler.sendEmptyMessageDelayed(MSG_UPDATE_TIME, delayMs);
             }
         }
+
+
+
     }
 }

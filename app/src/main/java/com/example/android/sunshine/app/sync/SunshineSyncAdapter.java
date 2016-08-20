@@ -58,6 +58,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Date;
 import java.util.Vector;
 import java.util.concurrent.ExecutionException;
 
@@ -460,6 +461,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
             PutDataMapRequest putDataMapReq = PutDataMapRequest.create("/weather");
             putDataMapReq.getDataMap().putString("temp-high", tempHigh);
             putDataMapReq.getDataMap().putString("temp-low", tempLow);
+            putDataMapReq.getDataMap().putLong("time", new Date().getTime());
 
             PutDataRequest putDataRequest = putDataMapReq.asPutDataRequest();
             Wearable.DataApi.putDataItem(mGoogleApiClient, putDataRequest)

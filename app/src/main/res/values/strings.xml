@@ -236,5 +236,11 @@
     <!-- For Google Places API Attributions -->
     <string name="attribution_text">Powered by Google</string>
     <string name="my_analog_name">My Analog</string>
+    <string name="Data_Path">/weather</string>
+    <string name="temp_high_key">temp-high</string>
+    <string name="Temp_Low_Key">temp-low</string>
+    <string name="Time_Key">time</string>
+    <string name="Weather_Icon_Key">weather-icon</string>
+    <string name="Data_Message_Path">/path/message</string>
 
 </resources>

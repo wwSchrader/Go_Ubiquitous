@@ -14,7 +14,7 @@ public class ReceiveFromWearable extends WearableListenerService {
         for (DataEvent dataEvent : dataEvents) {
             if (dataEvent.getType() == DataEvent.TYPE_CHANGED) {
                 String path = dataEvent.getDataItem().getUri().getPath();
-                if (path.equals("/path/message")) {
+                if (path.equals(getString(R.string.Data_Message_Path))) {
                     SunshineSyncAdapter.syncImmediately(this);
                 }
             }

@@ -203,7 +203,7 @@ public class DigitalWatchFace extends CanvasWatchFaceService {
             sendAppMessage();
 
             mTime = new Time();
-            mDateFormat = new SimpleDateFormat("EEE, MMM dd yyyy");
+            mDateFormat = new SimpleDateFormat(getString(R.string.Date_Format));
             mCalendar = Calendar.getInstance();
         }
 
@@ -337,9 +337,9 @@ public class DigitalWatchFace extends CanvasWatchFaceService {
             String text;
             // let the colon in the time "blink" every second in interactive mode
             if (mTime.second % 2 == 0 || isInAmbientMode()){
-                text = String.format("%d:%02d", mTime.hour, mTime.minute);
+                text = String.format(getString(R.string.Time_With_Colon), mTime.hour, mTime.minute);
             } else {
-                text = String.format("%d %02d", mTime.hour, mTime.minute);
+                text = String.format(getString(R.string.Time_No_Colon), mTime.hour, mTime.minute);
             }
 
             canvas.drawText(text, mXOffset, mYOffset, mTextPaint);
@@ -397,11 +397,11 @@ public class DigitalWatchFace extends CanvasWatchFaceService {
                 if (dataEvent.getType() == DataEvent.TYPE_CHANGED) {
                     DataMap dataMap = DataMapItem.fromDataItem(dataEvent.getDataItem()).getDataMap();
                     String path = dataEvent.getDataItem().getUri().getPath();
-                    if (path.equals("/weather")) {
-                        tempHigh = dataMap.getString("temp-high");
-                        tempLow = dataMap.getString("temp-low");
+                    if (path.equals(getString(R.string.Data_Path))) {
+                        tempHigh = dataMap.getString(getString(R.string.Temp_High_Key));
+                        tempLow = dataMap.getString(getString(R.string.Temp_Low_Key));
 
-                        Asset iconAsset = dataMap.getAsset("weather-icon");
+                        Asset iconAsset = dataMap.getAsset(getString(R.string.Weather_Icon_Key));
                         loadBitmap(iconAsset);
                     }
                 }

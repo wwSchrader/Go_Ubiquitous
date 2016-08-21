@@ -1,4 +1,11 @@
 <resources>
     <string name="app_name">Wearable</string>
-    <string name="my_digital_name">My Digital</string>
+    <string name="my_digital_name">Sunshine</string>
+    <string name="Date_Format">EEE, MMM dd yyyy</string>
+    <string name="Time_With_Colon">%d:%02d</string>
+    <string name="Time_No_Colon">%d %02d</string>
+    <string name="Data_Path">/weather</string>
+    <string name="Temp_High_Key">temp-high</string>
+    <string name="Temp_Low_Key">temp-low</string>
+    <string name="Weather_Icon_Key">weather-icon</string>
 </resources>

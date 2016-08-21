@@ -40,11 +40,16 @@ import android.view.WindowInsets;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataEventBuffer;
 import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.DataMapItem;
+import com.google.android.gms.wearable.Node;
+import com.google.android.gms.wearable.NodeApi;
+import com.google.android.gms.wearable.PutDataMapRequest;
+import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
 
 import java.lang.ref.WeakReference;
@@ -183,10 +188,14 @@ public class DigitalWatchFace extends CanvasWatchFaceService {
             tempHigh = "--";
             tempLow = "--";
 
+            sendAppMessage();
+
             mTime = new Time();
             mDateFormat = new SimpleDateFormat("EEE, MMM dd yyyy");
             mCalendar = Calendar.getInstance();
         }
+
+
 
         @Override
         public void onDestroy() {
@@ -378,7 +387,42 @@ public class DigitalWatchFace extends CanvasWatchFaceService {
 
         @Override
         public void onConnected(@Nullable Bundle bundle) {
+            Log.d("onConnected", "onConnected triggered");
             Wearable.DataApi.addListener(mGoogleApiClient, this);
+
+        }
+
+        private void sendAppMessage() {
+            Log.d("sendAppMessage", "sendAppMessage triggered");
+
+            PutDataMapRequest putDataMapRequest = PutDataMapRequest.create("/path/message");
+            putDataMapRequest.getDataMap().putLong("time", System.currentTimeMillis());
+
+            PutDataRequest putDataRequest = putDataMapRequest.asPutDataRequest();
+            Wearable.DataApi.putDataItem(mGoogleApiClient, putDataRequest)
+                    .setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
+                        @Override
+                        public void onResult(@NonNull DataApi.DataItemResult dataItemResult) {
+                            if (!dataItemResult.getStatus().isSuccess()){
+                                Log.e("wearable", "Failed to send weather data item to com.example.android.app");
+                            } else {
+                                Log.d("wearable", "Successfully sent weather data item to com.example.android.app");
+                            }
+                        }
+                    });
+        }
+
+        private String pickBestNodeId(NodeApi.GetConnectedNodesResult nodes) {
+            Log.d("wearable", "pickBestNodId triggered");
+            String bestNodeId = null;
+            // Find a nearby node or pick one arbitrarily
+            for (Node node : nodes.getNodes()) {
+                if (node.isNearby()) {
+                    return node.getId();
+                }
+                bestNodeId = node.getId();
+            }
+            return bestNodeId;
         }
 
         @Override

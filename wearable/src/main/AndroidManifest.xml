@@ -5,6 +5,8 @@
 
     <uses-feature android:name="android.hardware.type.watch"/>
 
+    <uses-permission android:name="android.permission.SET_DEBUG_APP"/>
+
     <!-- Required to act as a custom watch face. -->
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
 

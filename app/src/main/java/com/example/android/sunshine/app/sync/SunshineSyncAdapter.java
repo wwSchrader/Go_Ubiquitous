@@ -41,6 +41,7 @@ import com.example.android.sunshine.app.muzei.WeatherMuzeiSource;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.wearable.Asset;
 import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.PutDataMapRequest;
 import com.google.android.gms.wearable.PutDataRequest;
@@ -51,6 +52,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -409,7 +411,13 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
                 updateWidgets();
                 updateMuzei();
                 notifyWeather();
-                sendWeatherDataToWearable();
+                try {
+                    sendWeatherDataToWearable();
+                } catch (ExecutionException e) {
+                    e.printStackTrace();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
             Log.d(LOG_TAG, "Sync Complete. " + cVVector.size() + " Inserted");
             setLocationStatus(getContext(), LOCATION_STATUS_OK);
@@ -435,7 +443,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
         context.sendBroadcast(dataUpdatedIntent);
     }
 
-    private void sendWeatherDataToWearable() {
+    private void sendWeatherDataToWearable() throws ExecutionException, InterruptedException {
         Context mContext = getContext();
         String locationQuery = Utility.getPreferredLocation(mContext);
 
@@ -454,6 +462,15 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
             int artResourceId = Utility.getArtResourceForWeatherCondition(weatherId);
             String artUrl = Utility.getArtUrlForWeatherCondition(mContext, weatherId);
 
+            int iconWidth = 144;
+            int iconHeight = 144;
+
+            Bitmap iconBitmap = Glide.with(mContext).load(artUrl).asBitmap().into(iconWidth, iconHeight).get();
+
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            iconBitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
+            Asset asset = Asset.createFromBytes(byteArrayOutputStream.toByteArray());
+
             String tempHigh = Utility.formatTemperature(mContext, high);
             String tempLow = Utility.formatTemperature(mContext, low);
 
@@ -461,6 +478,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter implements 
             putDataMapReq.getDataMap().putString("temp-high", tempHigh);
             putDataMapReq.getDataMap().putString("temp-low", tempLow);
             putDataMapReq.getDataMap().putLong("time", System.currentTimeMillis());
+            putDataMapReq.getDataMap().putAsset("weather-icon", asset);
 
             PutDataRequest putDataRequest = putDataMapReq.asPutDataRequest();
             Wearable.DataApi.putDataItem(mGoogleApiClient, putDataRequest)
